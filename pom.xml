@@ -10,24 +10,31 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <org.jooq.version>3.11.11</org.jooq.version>
-        <db.url>jdbc:h2:~/mcve</db.url>
-        <db.username>sa</db.username>
-        <db.password></db.password>
+        <org.jooq.version>3.12.0-SNAPSHOT</org.jooq.version>
     </properties>
 
     <dependencies>
 
         <!-- Database access -->
         <dependency>
-            <groupId>org.jooq</groupId>
+            <groupId>org.jooq.trial</groupId>
             <artifactId>jooq</artifactId>
             <version>${org.jooq.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>1.4.197</version>
+            <groupId>org.jooq.trial</groupId>
+            <artifactId>jooq-meta</artifactId>
+            <version>${org.jooq.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jooq.trial</groupId>
+            <artifactId>jooq-codegen</artifactId>
+            <version>${org.jooq.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.2.5</version>
         </dependency>
 
         <!-- Logging -->
@@ -44,6 +51,18 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>1.11.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>1.11.4</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -53,78 +72,9 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.0</version>
                 <configuration>
-                    <source>10</source>
-                    <target>10</target>
+                    <source>11</source>
+                    <target>11</target>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-maven-plugin</artifactId>
-                <version>5.2.1</version>
-                <executions>
-                    <execution>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>migrate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <url>${db.url}</url>
-                    <user>${db.username}</user>
-                    <password>${db.password}</password>
-                    <locations>
-                        <location>filesystem:src/main/resources/db/migration</location>
-                    </locations>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.jooq</groupId>
-                <artifactId>jooq-codegen-maven</artifactId>
-                <version>${org.jooq.version}</version>
-
-                <executions>
-                    <execution>
-                        <id>java-generator</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-
-                        <configuration>
-                            <jdbc>
-                                <url>${db.url}</url>
-                                <user>${db.username}</user>
-                                <password>${db.password}</password>
-                            </jdbc>
-                            <generator>
-                                <database>
-                                    <includes>.*</includes>
-                                    <schemata>
-                                        <!-- PostgreSQL is lower case by default -->
-                                        <schema>
-                                            <inputSchema>mcve</inputSchema>
-                                        </schema>
-
-                                        <!-- H2 and others are upper case by default -->
-                                        <schema>
-                                            <inputSchema>MCVE</inputSchema>
-                                        </schema>
-                                    </schemata>
-                                </database>
-                                <generate>
-                                    <generatedAnnotation>false</generatedAnnotation>
-                                </generate>
-                                <target>
-                                    <packageName>org.jooq.mcve</packageName>
-                                    <directory>target/generated-sources/jooq-mcve</directory>
-                                </target>
-                            </generator>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

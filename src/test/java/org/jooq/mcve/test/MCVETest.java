@@ -37,28 +37,34 @@
  */
 package org.jooq.mcve.test;
 
-import static org.jooq.mcve.Tables.TEST;
-import static org.junit.Assert.assertEquals;
-
 import java.sql.Connection;
-import java.sql.DriverManager;
 
 import org.jooq.DSLContext;
+import org.jooq.codegen.GenerationTool;
 import org.jooq.impl.DSL;
-import org.jooq.mcve.tables.records.TestRecord;
-
+import org.jooq.meta.jaxb.Configuration;
+import org.jooq.meta.jaxb.Database;
+import org.jooq.meta.jaxb.Generator;
+import org.jooq.meta.jaxb.Jdbc;
+import org.jooq.meta.jaxb.Property;
+import org.jooq.meta.jaxb.Target;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.testcontainers.containers.PostgreSQLContainer;
 
 public class MCVETest {
+    
+    @Rule
+    public PostgreSQLContainer<?> db = new PostgreSQLContainer<>().withInitScript("db/init.sql");
 
     Connection connection;
     DSLContext ctx;
 
     @Before
     public void setup() throws Exception {
-        connection = DriverManager.getConnection("jdbc:h2:~/mcve", "sa", "");
+        connection = db.createConnection("");
         ctx = DSL.using(connection);
     }
 
@@ -70,15 +76,40 @@ public class MCVETest {
     }
 
     @Test
-    public void mcveTest() {
-        TestRecord result =
-        ctx.insertInto(TEST)
-           .columns(TEST.VALUE)
-           .values(42)
-           .returning(TEST.ID)
-           .fetchOne();
+    public void mcveTest() throws Exception {
+        new GenerationTool().run(new Configuration()
+            .withJdbc(new Jdbc()
+                .withUrl(db.getJdbcUrl())
+                .withDriver("org.postgresql.Driver")
+                .withUser(db.getUsername())
+                .withPassword(db.getPassword())
+            )
+            .withGenerator(new Generator()
+                .withName("org.jooq.codegen.XMLGenerator")
+                .withDatabase(new Database()
+                    .withInputSchema("public"))
+                .withTarget(new Target()
+                    .withDirectory("target/generated-sources/jooq-mcve")
+                    .withPackageName("org.jooq.mcve")
+                )
+            )
+        );
 
-        result.refresh();
-        assertEquals(42, (int) result.getValue());
+        new GenerationTool().run(new Configuration()
+            .withGenerator(new Generator()
+                .withName("org.jooq.codegen.JavaGenerator")
+                .withDatabase(new Database()
+                    .withName("org.jooq.meta.xml.XMLDatabase")
+                    .withProperties(
+                        new Property().withKey("dialect").withValue("POSTGRES"),
+                        new Property().withKey("xml-file").withValue("target/generated-sources/jooq-mcve/org/jooq/mcve/information_schema.xml")
+                    )
+                )
+                .withTarget(new Target()
+                    .withDirectory("target/generated-sources/jooq-mcve")
+                    .withPackageName("org.jooq.mcve")
+                )
+            )
+        );
     }
 }
